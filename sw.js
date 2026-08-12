@@ -1,4 +1,4 @@
-var CACHE_NAME = "quizapp-v3";
+var CACHE_NAME = "quizapp-v4";
 var ASSETS = [
   "./",
   "./index.html",
@@ -9,6 +9,7 @@ var ASSETS = [
   "./icons/icon-512.png",
   "./subjects/minpo/data.js",
   "./subjects/kenpo/data.js",
+  "./subjects/keihou/data.js",
 ];
 
 self.addEventListener("install", function (event) {
