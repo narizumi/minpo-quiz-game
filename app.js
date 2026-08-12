@@ -1,13 +1,15 @@
 (function () {
   "use strict";
 
-  var DATA = window.MINPO_DATA;
-  var STORAGE_KEY = "minpo-quiz-selected-topics";
+  var REGISTRY = window.SUBJECT_REGISTRY || {};
+  var SUBJECT_ORDER = ["minpo", "kenpo", "keihou", "minji_sosho", "keiji_sosho", "kaisha", "gyosei_sosho"];
+  var DATA = null; // set to REGISTRY[state.subject] once a subject is chosen
 
   var root = document.getElementById("screen-root");
 
   var state = {
-    selectedTopicIds: loadSelectedTopics(),
+    subject: null,
+    selectedTopicIds: [],
     mode: null,
     questionCount: 20,
     quiz: [],
@@ -35,9 +37,13 @@
     },
   ];
 
+  function topicStorageKey() {
+    return "quizapp-selected-topics-" + state.subject;
+  }
+
   function loadSelectedTopics() {
     try {
-      var raw = localStorage.getItem(STORAGE_KEY);
+      var raw = localStorage.getItem(topicStorageKey());
       if (raw) return JSON.parse(raw);
     } catch (e) {}
     return DATA.topics.map(function (t) { return t.id; }); // default: all selected
@@ -45,7 +51,7 @@
 
   function saveSelectedTopics() {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.selectedTopicIds));
+      localStorage.setItem(topicStorageKey(), JSON.stringify(state.selectedTopicIds));
     } catch (e) {}
   }
 
@@ -96,11 +102,62 @@
     return out;
   }
 
+  // ---------- Screen: Subject selection ----------
+  function availableSubjects() {
+    return SUBJECT_ORDER.filter(function (id) { return REGISTRY[id]; })
+      .map(function (id) { return REGISTRY[id]; })
+      .concat(
+        Object.keys(REGISTRY)
+          .filter(function (id) { return SUBJECT_ORDER.indexOf(id) === -1; })
+          .map(function (id) { return REGISTRY[id]; })
+      );
+  }
+
+  function selectSubject(id) {
+    state.subject = id;
+    DATA = REGISTRY[id];
+    state.selectedTopicIds = loadSelectedTopics();
+    state.mode = null;
+    document.title = DATA.name + "条文マスター";
+    renderTopicScreen();
+  }
+
+  function renderSubjectScreen() {
+    root.innerHTML = "";
+    document.title = "予備試験条文マスター";
+    var panel = el("div", { class: "panel" });
+    panel.appendChild(el("h2", { class: "section-title" }, ["科目を選ぶ"]));
+    panel.appendChild(el("p", { class: "section-desc" }, ["学習する科目を選択してください。"]));
+
+    var grid = el("div", { class: "mode-grid" });
+    var subjects = availableSubjects();
+    subjects.forEach(function (s) {
+      var totalArticles = s.topics.reduce(function (sum, t) { return sum + t.articles.length; }, 0);
+      var card = el("button", {
+        class: "mode-card btn",
+        onclick: function () { selectSubject(s.id); },
+      }, [
+        el("div", { class: "mode-name" }, [s.name]),
+        el("div", { class: "mode-desc" }, [s.topics.length + "トピック・全" + totalArticles + "か条"]),
+      ]);
+      grid.appendChild(card);
+    });
+    panel.appendChild(grid);
+    if (subjects.length === 0) {
+      panel.appendChild(el("p", { class: "section-desc" }, ["利用可能な科目がありません。"]));
+    }
+    root.appendChild(panel);
+  }
+
   // ---------- Screen: Topic selection ----------
   function renderTopicScreen() {
     root.innerHTML = "";
+    document.title = DATA.name + "条文マスター";
     var panel = el("div", { class: "panel" });
-    panel.appendChild(el("h2", { class: "section-title" }, ["学習する条文トピックを選ぶ"]));
+    panel.appendChild(el("div", { class: "toolbar" }, [
+      el("button", { class: "quit-link", onclick: renderSubjectScreen }, ["← 科目選択に戻る"]),
+    ]));
+    panel.appendChild(el("h2", { class: "section-title" }, [DATA.name + "：学習する条文トピックを選ぶ"]));
     var totalArticles = DATA.topics.reduce(function (sum, t) { return sum + t.articles.length; }, 0);
     panel.appendChild(el("p", { class: "section-desc" }, [
       "予備試験論文で頻出の" + DATA.topics.length + "トピック・全" + totalArticles + "か条を収録。学習したいトピックを選択してください。",
@@ -327,7 +384,7 @@
       type: "guess",
       topicName: topic.name,
       article: article,
-      prompt: "次の条文の内容は、民法何条ですか？",
+      prompt: "次の条文の内容は、" + DATA.name + "何条ですか？",
       bodyText: article.text,
       choices: guessChoices.map(function (a) { return a.displayNum; }),
       correct: article.displayNum,
@@ -567,11 +624,12 @@
       el("button", { class: "btn btn-primary", onclick: function () { startQuiz(); } }, ["もう一度同じ設定で挑戦"]),
       el("button", { class: "btn", onclick: renderModeScreen }, ["モード選択に戻る"]),
       el("button", { class: "btn", onclick: renderTopicScreen }, ["トピック選択に戻る"]),
+      el("button", { class: "btn", onclick: renderSubjectScreen }, ["科目選択に戻る"]),
     ]);
     panel.appendChild(backRow);
 
     root.appendChild(panel);
   }
 
-  renderTopicScreen();
+  renderSubjectScreen();
 })();

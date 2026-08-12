@@ -1,13 +1,13 @@
-var CACHE_NAME = "minpo-quiz-v1";
+var CACHE_NAME = "quizapp-v2";
 var ASSETS = [
   "./",
   "./index.html",
   "./style.css",
   "./app.js",
-  "./data.js",
   "./manifest.json",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
+  "./subjects/minpo/data.js",
 ];
 
 self.addEventListener("install", function (event) {

@@ -1,7 +1,7 @@
 {
-  "name": "民法条文マスター",
-  "short_name": "民法条文",
-  "description": "予備試験論文対策 民法条文暗記ゲーム",
+  "name": "予備試験条文マスター",
+  "short_name": "条文マスター",
+  "description": "予備試験論文対策 法律基本科目 条文暗記ゲーム",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",
