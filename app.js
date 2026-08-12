@@ -124,7 +124,7 @@
 
   function renderSubjectScreen() {
     root.innerHTML = "";
-    document.title = "予備試験条文マスター";
+    document.title = "六法条文マスター";
     var panel = el("div", { class: "panel" });
     panel.appendChild(el("h2", { class: "section-title" }, ["科目を選ぶ"]));
     panel.appendChild(el("p", { class: "section-desc" }, ["学習する科目を選択してください。"]));

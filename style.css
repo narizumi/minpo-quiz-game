@@ -57,12 +57,6 @@ body {
   letter-spacing: 0.02em;
 }
 
-.app-header .subtitle {
-  margin: 4px 0 0;
-  color: var(--ink-soft);
-  font-size: 0.85rem;
-}
-
 .panel {
   background: var(--panel);
   border: 1px solid var(--border);
