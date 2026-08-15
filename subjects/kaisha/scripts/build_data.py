@@ -17,6 +17,20 @@ SUBJECT_NAME = "会社法"
 
 KANJI_NUM = "〇一二三四五六七八九十百千"
 
+FULLWIDTH_DIGITS = str.maketrans("0123456789", "０１２３４５６７８９")
+
+
+def number_paragraphs(text):
+    """Prefix paragraphs 2+ with their fullwidth paragraph number (e.g. '２　'),
+    matching official statutory text. The first paragraph stays unlabeled."""
+    parts = text.split("\n")
+    if len(parts) <= 1:
+        return text
+    numbered = [parts[0]]
+    for i, p in enumerate(parts[1:], start=2):
+        numbered.append(f"{str(i).translate(FULLWIDTH_DIGITS)}　{p}")
+    return "\n".join(numbered)
+
 
 def topic_id(name):
     return re.sub(r"[^0-9a-zA-Z]+", "", name.encode("ascii", "ignore").decode()) or None
@@ -86,7 +100,7 @@ def main():
             if entry is None:
                 errors.append(f"{topic['topic']} 第{num}条: raw text missing")
                 continue
-            text = entry["text"]
+            text = number_paragraphs(entry["text"])
             result = build_blanks(topic["topic"], num, text, art["blanks"], errors)
             if result is None:
                 continue
