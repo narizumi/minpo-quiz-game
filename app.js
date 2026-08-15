@@ -492,7 +492,7 @@
     root.appendChild(panel);
   }
 
-  var CIRCLED_NUMS = ["①", "②", "③"];
+  var CIRCLED_NUMS = ["①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "⑩"];
 
   function renderFillBody(panel, q) {
     var textNode = el("div", { class: "question-text" });
