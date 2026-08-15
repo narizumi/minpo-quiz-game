@@ -160,7 +160,7 @@
     panel.appendChild(el("h2", { class: "section-title" }, [DATA.name + "：学習する条文トピックを選ぶ"]));
     var totalArticles = DATA.topics.reduce(function (sum, t) { return sum + t.articles.length; }, 0);
     panel.appendChild(el("p", { class: "section-desc" }, [
-      "予備試験論文で頻出の" + DATA.topics.length + "トピック・全" + totalArticles + "か条を収録。学習したいトピックを選択してください。",
+      DATA.topics.length + "トピック・全" + totalArticles + "か条を収録。学習したいトピックを選択してください。",
     ]));
 
     var toolbar = el("div", { class: "toolbar" }, [
