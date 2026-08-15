@@ -134,7 +134,7 @@
     subjects.forEach(function (s) {
       var totalArticles = s.topics.reduce(function (sum, t) { return sum + t.articles.length; }, 0);
       var card = el("button", {
-        class: "mode-card btn",
+        class: "mode-card btn subject-card subject-" + s.id,
         onclick: function () { selectSubject(s.id); },
       }, [
         el("div", { class: "mode-name" }, [s.name]),

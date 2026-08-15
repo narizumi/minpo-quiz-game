@@ -193,6 +193,24 @@ button {
   background: var(--accent-soft);
 }
 
+.subject-minpo { background: #f5d6d6; border-color: #e3a8a8; }
+.subject-kenpo { background: #d3e3fa; border-color: #a8c8ef; }
+.subject-keihou { background: #f5ddc0; border-color: #e6b978; }
+.subject-minji_sosho { background: #cde9d4; border-color: #9fd3ac; }
+.subject-keiji_sosho { background: #e6d3f0; border-color: #c9a0dd; }
+.subject-kaisha { background: #f7ecc0; border-color: #e8d17a; }
+.subject-gyosei_sosho { background: #cfe2e8; border-color: #9dc3ce; }
+
+@media (prefers-color-scheme: dark) {
+  .subject-minpo { background: #3a2626; border-color: #5c3a3a; }
+  .subject-kenpo { background: #23303f; border-color: #35506b; }
+  .subject-keihou { background: #3a3020; border-color: #5c4a2a; }
+  .subject-minji_sosho { background: #223326; border-color: #335c3e; }
+  .subject-keiji_sosho { background: #302636; border-color: #4a3a5c; }
+  .subject-kaisha { background: #3a3520; border-color: #5c542a; }
+  .subject-gyosei_sosho { background: #223035; border-color: #34505c; }
+}
+
 .mode-card .mode-name {
   font-weight: 700;
   margin-bottom: 3px;
