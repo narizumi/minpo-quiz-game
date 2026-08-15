@@ -1,7 +1,7 @@
 {
   "name": "六法条文マスター",
   "short_name": "条文マスター",
-  "description": "予備試験論文対策 法律基本科目 条文暗記ゲーム",
+  "description": "六法条文習得ゲーム",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",
