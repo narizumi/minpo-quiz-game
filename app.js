@@ -17,6 +17,7 @@
     score: 0,
     log: [], // {question, chosen, correct, isCorrect}
     showArticleNumbers: false,
+    reviewRound: 0, // 0 = normal quiz; N = Nth "retry only the wrong ones" round
   };
 
   var MODES = [
@@ -337,6 +338,7 @@
       });
       return {
         type: "fill",
+        topic: topic,
         topicName: topic.name,
         article: article,
         prompt: article.displayNum + "（" + article.label + "）",
@@ -361,6 +363,7 @@
       });
       return {
         type: "link",
+        topic: topic,
         topicName: topic.name,
         article: article,
         prompt: "「" + topic.name + "」の条文一覧です。" + article.displayNum + "の見出し（？？？の部分）はどれですか？",
@@ -382,6 +385,7 @@
     var guessChoices = shuffle([article].concat(wrongArticles));
     return {
       type: "guess",
+      topic: topic,
       topicName: topic.name,
       article: article,
       prompt: "次の条文の内容は、" + DATA.name + "何条ですか？",
@@ -391,16 +395,29 @@
     };
   }
 
-  function startQuiz() {
-    var entries = selectedArticlesFlat();
-    var chosen = sample(entries, state.questionCount);
-    state.quiz = chosen.map(function (entry) {
-      return buildQuizQuestion(state.mode, entry, entries);
+  function buildQuizFromEntries(entries) {
+    var allEntries = selectedArticlesFlat();
+    state.quiz = entries.map(function (entry) {
+      return buildQuizQuestion(state.mode, entry, allEntries);
     });
     state.quizIndex = 0;
     state.score = 0;
     state.log = [];
     renderQuizScreen();
+  }
+
+  function startQuiz() {
+    state.reviewRound = 0;
+    var entries = selectedArticlesFlat();
+    var chosen = sample(entries, state.questionCount);
+    buildQuizFromEntries(chosen);
+  }
+
+  function retryWrongOnly() {
+    var wrongs = state.log.filter(function (l) { return !l.isCorrect; });
+    var entries = wrongs.map(function (l) { return { topic: l.q.topic, article: l.q.article }; });
+    state.reviewRound++;
+    buildQuizFromEntries(entries);
   }
 
   // ---------- Screen: Quiz ----------
@@ -421,7 +438,10 @@
       el("button", { class: "quit-link", onclick: function () { quitTo(renderTopicScreen); } }, ["✕ トピック選択に戻る"]),
     ]));
     progressWrap.appendChild(el("div", { class: "quiz-progress" }, [
-      el("span", {}, ["問題 " + (state.quizIndex + 1) + " / " + total]),
+      el("span", {}, [
+        (state.reviewRound > 0 ? "復習" + state.reviewRound + "周目 ・ " : "") +
+          "問題 " + (state.quizIndex + 1) + " / " + total,
+      ]),
       el("span", {}, ["正解 " + state.score]),
     ]));
     var bar = el("div", { class: "progress-bar" }, [
@@ -596,6 +616,9 @@
     root.innerHTML = "";
     var total = state.quiz.length;
     var panel = el("div", { class: "panel" });
+    if (state.reviewRound > 0) {
+      panel.appendChild(el("div", { class: "question-tag" }, ["復習 " + state.reviewRound + " 周目の結果"]));
+    }
     panel.appendChild(el("div", { class: "score-hero" }, [
       el("div", { class: "score-num" }, [state.score + " / " + total]),
       el("div", { class: "score-total" }, [Math.round((state.score / total) * 100) + "% 正解"]),
@@ -616,12 +639,24 @@
         ]));
       });
       panel.appendChild(list);
+    } else if (state.reviewRound > 0) {
+      panel.appendChild(el("p", { class: "section-desc" }, [
+        "復習" + state.reviewRound + "周で、間違えた問題も含めて全問正解しました！お疲れ様でした。",
+      ]));
     } else {
       panel.appendChild(el("p", { class: "section-desc" }, ["全問正解です！お見事。"]));
     }
 
     var backRow = el("div", { class: "back-row" }, [
-      el("button", { class: "btn btn-primary", onclick: function () { startQuiz(); } }, ["もう一度同じ設定で挑戦"]),
+      wrongs.length > 0
+        ? el("button", { class: "btn btn-primary", onclick: function () { retryWrongOnly(); } }, [
+            "間違えた問題だけやり直す（" + wrongs.length + "問）",
+          ])
+        : null,
+      el("button", {
+        class: "btn" + (wrongs.length > 0 ? "" : " btn-primary"),
+        onclick: function () { startQuiz(); },
+      }, ["もう一度同じ設定で挑戦"]),
       el("button", { class: "btn", onclick: renderModeScreen }, ["モード選択に戻る"]),
       el("button", { class: "btn", onclick: renderTopicScreen }, ["トピック選択に戻る"]),
       el("button", { class: "btn", onclick: renderSubjectScreen }, ["科目選択に戻る"]),
