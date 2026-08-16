@@ -18,6 +18,7 @@
     log: [], // {question, chosen, correct, isCorrect}
     showArticleNumbers: false,
     reviewRound: 0, // 0 = normal quiz; N = Nth "retry only the wrong ones" round
+    reviewQuizEntries: null, // non-null while quizzing from the review list instead of selected topics
   };
 
   var MODES = [
@@ -54,6 +55,59 @@
     try {
       localStorage.setItem(topicStorageKey(), JSON.stringify(state.selectedTopicIds));
     } catch (e) {}
+  }
+
+  function reviewStorageKey() {
+    return "quizapp-review-" + state.subject;
+  }
+
+  function loadReviewData() {
+    try {
+      var raw = localStorage.getItem(reviewStorageKey());
+      if (raw) return JSON.parse(raw);
+    } catch (e) {}
+    return {};
+  }
+
+  function saveReviewData(data) {
+    try {
+      localStorage.setItem(reviewStorageKey(), JSON.stringify(data));
+    } catch (e) {}
+  }
+
+  function articleReviewKey(topic, article) {
+    return topic.id + "::" + article.num;
+  }
+
+  function getReviewEntry(topic, article) {
+    var data = loadReviewData();
+    return data[articleReviewKey(topic, article)] || { checked: false, memo: "" };
+  }
+
+  function setReviewEntry(topic, article, patch) {
+    var data = loadReviewData();
+    var key = articleReviewKey(topic, article);
+    var next = Object.assign({ checked: false, memo: "" }, data[key] || {}, patch);
+    if (!next.checked && !next.memo.trim()) {
+      delete data[key];
+    } else {
+      data[key] = next;
+    }
+    saveReviewData(data);
+  }
+
+  function reviewListEntries() {
+    var data = loadReviewData();
+    var out = [];
+    DATA.topics.forEach(function (t) {
+      t.articles.forEach(function (a) {
+        var entry = data[articleReviewKey(t, a)];
+        if (entry && (entry.checked || entry.memo.trim())) {
+          out.push({ topic: t, article: a, checked: entry.checked, memo: entry.memo });
+        }
+      });
+    });
+    return out;
   }
 
   function el(tag, attrs, children) {
@@ -94,6 +148,7 @@
   }
 
   function selectedArticlesFlat() {
+    if (state.reviewQuizEntries) return state.reviewQuizEntries;
     var out = [];
     selectedTopics().forEach(function (t) {
       t.articles.forEach(function (a) {
@@ -119,6 +174,7 @@
     DATA = REGISTRY[id];
     state.selectedTopicIds = loadSelectedTopics();
     state.mode = null;
+    state.reviewQuizEntries = null;
     document.title = DATA.name + "条文マスター";
     renderTopicScreen();
   }
@@ -153,6 +209,7 @@
   // ---------- Screen: Topic selection ----------
   function renderTopicScreen() {
     root.innerHTML = "";
+    state.reviewQuizEntries = null;
     document.title = DATA.name + "条文マスター";
     var panel = el("div", { class: "panel" });
     panel.appendChild(el("div", { class: "toolbar" }, [
@@ -188,6 +245,7 @@
           renderTopicScreen();
         },
       }, [state.showArticleNumbers ? "範囲表示に戻す" : "条文番号を表示"]),
+      el("button", { class: "btn", onclick: renderReviewListScreen }, ["復習リストを見る"]),
     ]);
     panel.appendChild(toolbar);
 
@@ -250,10 +308,76 @@
     root.appendChild(footer);
   }
 
+  // ---------- Screen: Review list ----------
+  function renderReviewListScreen() {
+    root.innerHTML = "";
+    document.title = DATA.name + "条文マスター";
+    var panel = el("div", { class: "panel" });
+    panel.appendChild(el("div", { class: "toolbar" }, [
+      el("button", { class: "quit-link", onclick: renderTopicScreen }, ["← トピック選択に戻る"]),
+    ]));
+    panel.appendChild(el("h2", { class: "section-title" }, [DATA.name + "：復習リスト"]));
+    panel.appendChild(el("p", { class: "section-desc" }, [
+      "「復習」にチェックした条文、またはメモを書いた条文が表示されます。",
+    ]));
+
+    var entries = reviewListEntries();
+
+    if (entries.length === 0) {
+      panel.appendChild(el("p", { class: "section-desc" }, [
+        "復習リストは空です。問題に回答した後の画面で「復習」にチェックするか、メモを書くとここに表示されます。",
+      ]));
+      root.appendChild(panel);
+      return;
+    }
+
+    var list = el("div", { class: "review-list" });
+    entries.forEach(function (entry) {
+      var row = el("div", { class: "review-item" }, [
+        el("div", { class: "ref" }, [
+          entry.article.displayNum + "（" + entry.article.label + "）　",
+          el("span", { style: "color:var(--ink-soft);font-weight:400;" }, [entry.topic.name]),
+        ]),
+      ]);
+      if (entry.memo.trim()) {
+        row.appendChild(el("div", { style: "white-space:pre-wrap;margin-top:4px;" }, [entry.memo]));
+      }
+      row.appendChild(el("div", { class: "toolbar", style: "margin-top:8px;margin-bottom:0;" }, [
+        el("button", {
+          class: "btn",
+          onclick: function () {
+            setReviewEntry(entry.topic, entry.article, { checked: false, memo: "" });
+            renderReviewListScreen();
+          },
+        }, ["リストから削除"]),
+      ]));
+      list.appendChild(row);
+    });
+    panel.appendChild(list);
+    root.appendChild(panel);
+
+    var footer = el("div", { class: "panel" });
+    footer.appendChild(el("div", { class: "selection-summary" }, [
+      "復習リスト: " + entries.length + " か条",
+    ]));
+    footer.appendChild(el("button", {
+      class: "btn btn-primary",
+      onclick: function () {
+        state.reviewQuizEntries = entries.map(function (e) { return { topic: e.topic, article: e.article }; });
+        state.mode = null;
+        renderModeScreen();
+      },
+    }, ["この一覧で出題する"]));
+    root.appendChild(footer);
+  }
+
   // ---------- Screen: Mode selection ----------
   function renderModeScreen() {
     root.innerHTML = "";
     var panel = el("div", { class: "panel" });
+    if (state.reviewQuizEntries) {
+      panel.appendChild(el("span", { class: "question-tag" }, ["復習リストで出題（" + state.reviewQuizEntries.length + "問）"]));
+    }
     panel.appendChild(el("h2", { class: "section-title" }, ["ゲームモードを選ぶ"]));
     panel.appendChild(el("p", { class: "section-desc" }, ["3種類のゲームから選んでください。"]));
 
@@ -437,11 +561,12 @@
       el("button", { class: "quit-link", onclick: function () { quitTo(renderModeScreen); } }, ["✕ モード選択に戻る"]),
       el("button", { class: "quit-link", onclick: function () { quitTo(renderTopicScreen); } }, ["✕ トピック選択に戻る"]),
     ]));
+    var progressLabelParts = [];
+    if (state.reviewQuizEntries) progressLabelParts.push("復習リスト");
+    if (state.reviewRound > 0) progressLabelParts.push("復習" + state.reviewRound + "周目");
+    var progressPrefix = progressLabelParts.length ? progressLabelParts.join(" ・ ") + " ・ " : "";
     progressWrap.appendChild(el("div", { class: "quiz-progress" }, [
-      el("span", {}, [
-        (state.reviewRound > 0 ? "復習" + state.reviewRound + "周目 ・ " : "") +
-          "問題 " + (state.quizIndex + 1) + " / " + total,
-      ]),
+      el("span", {}, [progressPrefix + "問題 " + (state.quizIndex + 1) + " / " + total]),
       el("span", {}, ["正解 " + state.score]),
     ]));
     var bar = el("div", { class: "progress-bar" }, [
@@ -593,6 +718,32 @@
       (isCorrect ? "○ 正解！ " : "× 不正解 ") + q.article.displayNum + "（" + q.article.label + "）",
     ]));
     wrap.appendChild(el("div", { style: "white-space:pre-wrap" }, [q.article.text]));
+
+    var reviewEntry = getReviewEntry(q.topic, q.article);
+    var memoInput = el("textarea", {
+      class: "review-memo-input",
+      placeholder: "メモ（任意）",
+      rows: 2,
+      oninput: function (e) {
+        setReviewEntry(q.topic, q.article, { memo: e.target.value });
+      },
+    });
+    memoInput.value = reviewEntry.memo;
+    var reviewBox = el("div", { class: "review-mark-row" }, [
+      el("label", { class: "review-mark-label" }, [
+        el("input", {
+          type: "checkbox",
+          checked: reviewEntry.checked ? "checked" : null,
+          onchange: function (e) {
+            setReviewEntry(q.topic, q.article, { checked: e.target.checked });
+          },
+        }),
+        "復習リストに追加",
+      ]),
+      memoInput,
+    ]);
+    reviewBox.querySelector("input[type=checkbox]").checked = reviewEntry.checked;
+    wrap.appendChild(reviewBox);
 
     var nextRow = el("div", { class: "next-btn-row" });
     var isLast = state.quizIndex >= state.quiz.length - 1;

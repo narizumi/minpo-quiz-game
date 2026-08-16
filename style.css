@@ -397,6 +397,43 @@ button {
   margin-bottom: 4px;
 }
 
+.review-mark-row {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.review-mark-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+
+.review-mark-label input {
+  accent-color: var(--accent);
+}
+
+.review-memo-input {
+  width: 100%;
+  font-family: inherit;
+  font-size: 0.85rem;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.review-memo-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
 .next-btn-row {
   margin-top: 16px;
   display: flex;
